@@ -20,7 +20,7 @@ class DataProcessor:
         path = os.path.join(self.raw_data_dir_path, self.raw_data_filename + str(num_user))
         with open(path) as user_file:
             commands = [command.rstrip('\n') for command in user_file.readlines()]
-        return commands
+        return ' '.join(commands)
 
     """
     load the raw data from resources of a single segment for a single user.
@@ -32,11 +32,12 @@ class DataProcessor:
             commands = [command.rstrip('\n') for command in user_file.readlines()]
         start = self.sample_size * (num_segment)
         end =  self.sample_size * (num_segment + 1)
-        return commands[start:end]
+        return ' '.join(commands[start:end])
 
     """
     load the raw data from resources of a single user divisioned to segments. 
     the result will be list when element i will be the commands of the user in segment i. 
     """
     def load_raw_data_single_user_segments(self, num_user, num_of_segments=50):
-        return [self.load_raw_data_single_segment(num_user, segment) for segment in range(0, num_of_segments)]
+        raw_data_list = [self.load_raw_data_single_segment(num_user, segment) for segment in range(0, num_of_segments)]
+        return ' '.join(raw_data_list)
