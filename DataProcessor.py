@@ -6,7 +6,7 @@ class DataProcessor:
     raw_data_filename = 'User'
     num_of_segments = 150
     num_of_users = 40
-    num_of_benigh_segments = 50
+    num_of_benign_segments = 50
     sample_size = 100
 
     def __init__(self):
