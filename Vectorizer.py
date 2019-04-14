@@ -4,7 +4,7 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 
 class Vectorizer:
 
-    def __init__ (self, ngram_count=2, type='n_gram'):
+    def __init__ (self, ngram_count=2, type='ngram'):
         self.n = ngram_count
         self.type = type
         if self.type == 'tfidf':
@@ -23,3 +23,4 @@ class Vectorizer:
         if to_array:
             return result.toarray()
         return result
+

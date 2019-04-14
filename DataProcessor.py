@@ -19,7 +19,7 @@ class DataProcessor:
     def load_raw_data_single_user_all(self, num_user):
         path = os.path.join(self.raw_data_dir_path, self.raw_data_filename + str(num_user))
         with open(path) as user_file:
-            commands = [command.rstrip('\n') for command in user_file.readlines()]
+            commands = [command.rstrip('\n').replace('-','').replace('.','') for command in user_file.readlines()]
         return ' '.join(commands)
 
     """
@@ -29,7 +29,7 @@ class DataProcessor:
     def load_raw_data_single_segment(self, num_user, num_segment):
         path = os.path.join(self.raw_data_dir_path, self.raw_data_filename + str(num_user))
         with open(path) as user_file:
-            commands = [command.rstrip('\n') for command in user_file.readlines()]
+            commands = [command.rstrip('\n').replace('-','').replace('.','') for command in user_file.readlines()]
         start = self.sample_size * (num_segment)
         end =  self.sample_size * (num_segment + 1)
         return ' '.join(commands[start:end])
@@ -40,4 +40,4 @@ class DataProcessor:
     """
     def load_raw_data_single_user_segments(self, num_user, num_of_segments=50):
         raw_data_list = [self.load_raw_data_single_segment(num_user, segment) for segment in range(0, num_of_segments)]
-        return ' '.join(raw_data_list)
+        return raw_data_list
