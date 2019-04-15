@@ -6,7 +6,7 @@ from collections import Counter
 class FeatureSelector:
     label_file = 'resources/partial_labels.csv'
     vectorize_dir_path = 'outputs/Vectorizer/'
-
+    feature_select_output_dir = 'outputs/FeatureSelector/'
 
     def load_data_user(self, user_num, n=2, type='ngram'):
         return pd.read_csv(self.vectorize_dir_path+'{}-{}-user{}.csv'.format(type, n, user_num))
@@ -28,7 +28,7 @@ class FeatureSelector:
                 label_list.append('None')
         return np.asarray(label_list)
 
-    def select_most_common(self, user_num, n_features = 100, n=2, type='ngram'):
+    def select_most_common(self, user_num, n_features = 100, n=2, type='ngram', write=False):
         df = self.load_data_user(user_num, n, type)
         user_list = self.load_label_user(user_num)
         col_num = df.shape[1] - 1
@@ -45,8 +45,11 @@ class FeatureSelector:
 
         result_df = df[common_features_col]
         result_df['Label'] = Y
+
+        if write:
+            result_df.to_csv('outputs/FeatureSelector/{}-{}-user{}.csv'.format(type, n, user_num))
         return result_df
 
-    def select_features(self, user_num, number_of_features=100, n=2, type='ngram'):
-        return FeatureSelector().select_most_common(0, number_of_features=100, n=2, type='ngram')
+    def select_features(self, user_num, number_of_features=100, n=2, type='ngram', write=False):
+        return FeatureSelector().select_most_common(0, number_of_features=100, n=n, type=type, write=write)
 
