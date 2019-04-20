@@ -44,7 +44,7 @@ class FeatureSelector:
         common_features_col = common_features.keys()
 
         result_df = df[common_features_col]
-        result_df['Label'] = Y
+        result_df.loc[:, 'Label'] = Y
 
         if write:
             result_df.to_csv('outputs/FeatureSelector/{}-{}-user{}.csv'.format(type, n, user_num))
