@@ -25,10 +25,10 @@ class FeatureSelector:
             if input_list[i] == str(0) or input_list[i] == str(1):
                 label_list.append(str(input_list[i]))
             else:
-                label_list.append('None')
+                label_list.append('s')
         return np.asarray(label_list)
 
-    def select_most_common(self, user_num, n_features = 100, n=2, type='ngram', write=False):
+    def select_most_common(self, user_num, n_features = 250, n=2, type='ngram', write=False):
         df = self.load_data_user(user_num, n, type)
         user_list = self.load_label_user(user_num)
         col_num = df.shape[1] - 1
@@ -51,5 +51,5 @@ class FeatureSelector:
         return result_df
 
     def select_features(self, user_num, number_of_features=100, n=2, type='ngram', write=False):
-        return FeatureSelector().select_most_common(0, number_of_features=100, n=n, type=type, write=write)
+        return FeatureSelector().select_most_common(0, number_of_features=250, n=n, type=type, write=write)
 

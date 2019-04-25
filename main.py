@@ -2,7 +2,7 @@ from DataProcessor import DataProcessor
 from Vectorizer import Vectorizer
 from FeatureSelector import FeatureSelector
 import pandas as pd
-from ClassificationAlgo import ClassificationAlgo
+from ClassificationModel import ClassificationModel
 import csv
 
 partial_labels_path= 'resources/partial_labels.csv'
@@ -30,16 +30,23 @@ def feature_select_all(n_features=200, n=2, type='ngram', write=True):
         fs.select_most_common(i, n_features, n, type, write)
     return
 
+def calc_stats_on_model(results, length):
+    stats = [(results[0][i][0],
+              (sum(results[n][i][1] for n in range(len(results)))/len(results)),
+              (sum(results[n][i][2] for n in range(len(results)))/len(results)))
+             for i in range(length)]
+    return stats
+
 
 if __name__ == "__main__":
-  vectorize_all(2, 'ngram')
-  feature_select_all(100, 2, 'ngram', True)
-  # ClassificationAlgo(user_num=0).logisticRegression()
-  # ClassificationAlgo(user_num=0).decisionTree()
-  # ClassificationAlgo(user_num=0).oneclassSvm()
-  ClassificationAlgo(user_num=0).compare_models()
-
-  print 'Done'
+  #vectorize_all(2, 'ngram')
+  #feature_select_all(250, 2, 'ngram', True)
+  results = []
+  for num in range(10):
+    print "******* User {} ********".format(num)
+    results.append(ClassificationModel(user_num=num).compare_models())
+#print calc_stats_on_model(results, len(results[0]))
+print 'Done'
 
 
 
