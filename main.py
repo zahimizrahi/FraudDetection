@@ -41,11 +41,14 @@ def calc_stats_on_model(results, length):
 if __name__ == "__main__":
   #vectorize_all(2, 'ngram')
   #feature_select_all(250, 2, 'ngram', True)
-  results = []
-  for num in range(10):
-    print "******* User {} ********".format(num)
-    results.append(ClassificationModel(user_num=num).compare_models())
-#print calc_stats_on_model(results, len(results[0]))
+    results = []
+    for num in range(10):
+        print "******* User {} ********".format(num)
+        results.append(ClassificationModel(user_num=num).compare_models())
+    stats = calc_stats_on_model(results, len(results[0]))
+    stats.sort(key=lambda x: x[1], reverse=True)
+    print stats
+
 print 'Done'
 
 
