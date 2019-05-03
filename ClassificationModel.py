@@ -1,3 +1,5 @@
+import numpy
+
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
 from sklearn.model_selection import train_test_split
 import pandas as pd
@@ -12,6 +14,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier
 from sklearn import model_selection
+import pickle
 
 SEED = 10
 
@@ -21,14 +24,18 @@ class ClassificationModel:
     def __init__(self, user_num, n=2, type='ngram', n_features=250):
         # TODO - use all users data
         df = pd.read_csv(self.feature_select_output_dir + '{}-{}-user{}.csv'.format(type, n, user_num))
-        # pop the target column
-        #print (df.gr oupby('Label').size())
-        #df = df[df['Label'].isin(['0','1'])]
         self.arr = df.values
         X = self.arr[:, 0:n_features]
         Y = df.pop('Label').values
-        self.x_train, self.x_test, self.y_train, self.y_test = X[0:50], X[50:], Y[0:50], Y[50:]
-            #model_selection.train_test_split(X,Y,test_size=0.3,random_state=7)
+        if user_num < 10:
+            # pop the target column
+            #print (df.gr oupby('Label').size())
+            #df = df[df['Label'].isin(['0','1'])]
+            self.x_train, self.x_test, self.y_train, self.y_test = X[0:100], X[100:], Y[0:100], Y[100:]
+            print self.x_train
+                #model_selection.train_test_split(X,Y,test_size=0.3,random_state=7)
+        else:
+            self.x_train, self.x_test, self.y_train, self.y_test = X[0:25], X[25:50], Y[0:25], Y[25:50]
 
     # def logisticRegression(self):
     #     logisticRegr = LogisticRegression()
@@ -56,16 +63,16 @@ class ClassificationModel:
     def compare_models(self):
         # prepare models
         models = [('LinearDiscriminantAnalysis', LinearDiscriminantAnalysis()),
-               ('LogisticRegression', LogisticRegression(solver='liblinear')),
+               #('LogisticRegression', LogisticRegression(solver='liblinear')),
                   ('MLPClassifier', MLPClassifier()),
                   ('KNeighbors', KNeighborsClassifier()),
                   ('GaussianNaiveBayes', GaussianNB()),
                   ('DecisionTree', DecisionTreeClassifier()),
                   ('RandomForest', RandomForestClassifier(n_estimators=100)),
                   ('AdaBoost', AdaBoostClassifier()),
-                  ('GradientBoosting', GradientBoostingClassifier()),
-                 ('SVC', SVC(gamma='scale')),
-                  ('LinearSVC', LinearSVC()),
+                  #('GradientBoosting', GradientBoostingClassifier()),
+                  #('SVC', SVC(gamma='scale')),
+                  #('LinearSVC', LinearSVC()),
                   ('OneClassSVM', OneClassSVM(gamma='scale', nu=0.1))]
         # evaluate each model in turn
         results = []
@@ -98,6 +105,26 @@ class ClassificationModel:
         #ax.set_xticklabels(names)
         #plt.show()
         return results
+
+    def predictLabels(self, user_num, n=2, type='ngram', n_features=250, x_train=None, y_train=None):
+        # Finalize model
+        model = RandomForestClassifier(n_estimators=100)
+        model.fit(x_train, y_train)
+
+        # Save model
+        filename = 'Final_Model.sav'
+        pickle.dump(model, open(filename, 'wb'))
+
+        # Load model and use it to make new predictions
+        loaded_model = pickle.load(open(filename, 'rb'))
+
+        # Load test dataset
+        df = pd.read_csv(self.feature_select_output_dir + '{}-{}-user{}.csv'.format(type, n, user_num))
+        self.arr = df.values
+        #FixMe - fix error
+        #X = self.arr[:, 0:n_features]
+        #pred = model.predict(X[50:])
+        #print(pred)
 
 
 

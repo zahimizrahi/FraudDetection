@@ -1,3 +1,5 @@
+import numpy
+
 from DataProcessor import DataProcessor
 from Vectorizer import Vectorizer
 from FeatureSelector import FeatureSelector
@@ -42,12 +44,26 @@ if __name__ == "__main__":
   #vectorize_all(2, 'ngram')
   #feature_select_all(250, 2, 'ngram', True)
     results = []
-    for num in range(10):
+    modelsUsersArr = []
+    for num in range(40):
         print "******* User {} ********".format(num)
-        results.append(ClassificationModel(user_num=num).compare_models())
+        classificationModel = ClassificationModel(user_num=num)
+        modelsUsersArr.append(classificationModel)
+        results.append(classificationModel.compare_models())
     stats = calc_stats_on_model(results, len(results[0]))
     stats.sort(key=lambda x: x[1], reverse=True)
     print stats
+
+    final_x_train = modelsUsersArr[0].x_train
+    final_y_train = modelsUsersArr[0].y_train
+    for num in range(1, 10):
+        final_x_train = numpy.append(final_x_train, modelsUsersArr[num].x_train, axis=0)
+        final_y_train = numpy.append(final_y_train, modelsUsersArr[num].y_train, axis=0)
+
+    print final_x_train
+    print final_y_train
+    for num in range(10, 40):
+        modelsUsersArr[num].predictLabels(user_num=num, n=2, type='ngram', x_train=final_x_train, y_train=final_y_train)
 
 print 'Done'
 
