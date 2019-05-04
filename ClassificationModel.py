@@ -20,45 +20,22 @@ SEED = 10
 
 class ClassificationModel:
     feature_select_output_dir = 'outputs/FeatureSelector/'
-
+    feature_select_output_file = 'outputs/FeatureSelector/all.csv'
     def __init__(self, user_num, n=2, type='ngram', n_features=250):
         # TODO - use all users data
-        df = pd.read_csv(self.feature_select_output_dir + '{}-{}-user{}.csv'.format(type, n, user_num))
-        self.arr = df.values
-        X = self.arr[:, 0:n_features]
-        Y = df.pop('Label').values
+        df = pd.read_csv(self.feature_select_output_file)
+        self.arr = df[df["User"]==user_num]
+        X = self.arr.drop(columns=['Label', 'Segment','User', 'Unnamed: 0'])
+        Y = self.arr.pop('Label').values
         if user_num < 10:
             # pop the target column
             #print (df.gr oupby('Label').size())
             #df = df[df['Label'].isin(['0','1'])]
             self.x_train, self.x_test, self.y_train, self.y_test = X[0:100], X[100:], Y[0:100], Y[100:]
-            print self.x_train
+            #print self.x_train
                 #model_selection.train_test_split(X,Y,test_size=0.3,random_state=7)
         else:
             self.x_train, self.x_test, self.y_train, self.y_test = X[0:25], X[25:50], Y[0:25], Y[25:50]
-
-    # def logisticRegression(self):
-    #     logisticRegr = LogisticRegression()
-    #     logisticRegr.fit(self.x_train, self.y_train)
-    #     predictions = logisticRegr.predict(self.x_test)
-    #     score = logisticRegr.score(self.x_test, self.y_test)
-    #     print "logisticRegression score = "
-    #     print score
-    #
-    # def oneclassSvm(self):
-    #     # build a one class svm model
-    #     model = svm.OneClassSVM(nu=0.1, kernel='rbf', gamma=0.1)
-    #     model.fit(self.x_train, self.y_train)
-    #     score = model.score_samples(self.x_test)
-    #     print "oneclassSvm score = "
-    #     print score
-    #
-    # def decisionTree(self):
-    #     model = tree.DecisionTreeClassifier()
-    #     model.fit(self.x_train, self.y_train)
-    #     score = model.score(self.x_test, self.y_test)
-    #     print "decisionTree score = "
-    #     print score
 
     def compare_models(self):
         # prepare models
@@ -85,25 +62,6 @@ class ClassificationModel:
             names.append(name)
             msg = '{}-{}-{}'.format(name, cv_results.mean(), cv_results.std())
             print msg
-
-                #if name in special_list:
-            #    model.fit(self.x_train)
-            #else:
-            #    model.fit(self.x_train, self.y_train)
-            #preds = model.predict(self.x_test)
-            #msg = "Name: {}    Accuracy: {:.4%}".format(name, accuracy_score(self.y_test, preds))
-            #print "X_train: {}".format(len(self.x_train))
-            #print "Y_train: {}".format(len(self.y_train))
-            #model.fit(self.x_train, self.y_test)
-            #preds = model.predict(self.x_test)
-            #print preds
-        # boxplot algorithm comparison
-        #fig = plt.figure()
-        #fig.suptitle('Algorithm Comparison')
-        #ax = fig.add_subplot(111)
-        #plt.boxplot(results)
-        #ax.set_xticklabels(names)
-        #plt.show()
         return results
 
     def predictLabels(self, user_num, n=2, type='ngram', n_features=250, x_train=None, y_train=None):
@@ -119,12 +77,11 @@ class ClassificationModel:
         loaded_model = pickle.load(open(filename, 'rb'))
 
         # Load test dataset
-        df = pd.read_csv(self.feature_select_output_dir + '{}-{}-user{}.csv'.format(type, n, user_num))
-        self.arr = df.values
-        #FixMe - fix error
-        #X = self.arr[:, 0:n_features]
-        #pred = model.predict(X[50:])
-        #print(pred)
+        df = pd.read_csv(self.feature_select_output_file)
+        self.arr = df[df["User"]==user_num]
+        X = self.arr.drop(columns=['Label', 'Segment','User', 'Unnamed: 0'])
+        pred = model.predict(X[50:])
+        print(pred)
 
 
 
