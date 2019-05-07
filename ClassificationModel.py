@@ -24,18 +24,26 @@ class ClassificationModel:
     def __init__(self, user_num, n=2, type='ngram', n_features=250):
         # TODO - use all users data
         df = pd.read_csv(self.feature_select_output_file)
-        self.arr = df[df["User"]==user_num]
+        self.arr = df[(df["User"]==user_num) & (df["Label"]!=2)]
+        if user_num < 10:
+            self.arr_all = df[df["Label"] != 2]
+        else:
+            self.arr_all = df[(df["User"]!=user_num) & (df["Label"]!=2)]
+        X_All = self.arr_all.drop(columns=['Label', 'Segment','User', 'Unnamed: 0'])
         X = self.arr.drop(columns=['Label', 'Segment','User', 'Unnamed: 0'])
+        Y_All = self.arr_all.pop('Label').values
         Y = self.arr.pop('Label').values
         if user_num < 10:
             # pop the target column
             #print (df.gr oupby('Label').size())
             #df = df[df['Label'].isin(['0','1'])]
-            self.x_train, self.x_test, self.y_train, self.y_test = X[0:100], X[100:], Y[0:100], Y[100:]
+            self.x_train, self.x_test, self.y_train, self.y_test = X_All, X, Y_All, Y
+            #self.x_train, self.x_test, self.y_train, self.y_test = X[0:100], X[100:], Y[0:100], Y[100:]
             #print self.x_train
                 #model_selection.train_test_split(X,Y,test_size=0.3,random_state=7)
         else:
-            self.x_train, self.x_test, self.y_train, self.y_test = X[0:25], X[25:50], Y[0:25], Y[25:50]
+            self.x_train, self.x_test, self.y_train, self.y_test = X_All, X, Y_All, Y
+            #self.x_train, self.x_test, self.y_train, self.y_test = X[0:25], X[25:50], Y[0:25], Y[25:50]
 
     def compare_models(self):
         # prepare models
@@ -64,10 +72,11 @@ class ClassificationModel:
             print msg
         return results
 
-    def predictLabels(self, user_num, n=2, type='ngram', n_features=250, x_train=None, y_train=None):
+    def predictLabels(self, user_num, n=2, type='ngram', n_features=250):
         # Finalize model
-        model = RandomForestClassifier(n_estimators=100)
-        model.fit(x_train, y_train)
+        #model = RandomForestClassifier(n_estimators=100)
+        model = LinearDiscriminantAnalysis()
+        model.fit(self.x_train, self.y_train)
 
         # Save model
         filename = 'Final_Model.sav'
