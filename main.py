@@ -18,6 +18,7 @@ writes the vectorization with the label of the segment to csv.
 label_file = 'resources/partial_labels.csv'
 sample_submission_file = 'resources/sample_submission.csv'
 submission_file = 'final_submission.csv'
+validation_file = 'validation.csv'
 
 
 def calc_stats_on_model(results, length):
@@ -29,14 +30,14 @@ def calc_stats_on_model(results, length):
 
 
 if __name__ == "__main__":
-    '''
+    """
     vectorize_all(2, 'ngram')
     result_pdf = pd.read_csv('outputs/Vectorizer/all.csv', dtype=pd.Int64Dtype(), na_values='')
     result_pdf.fillna(0, inplace=True)
     fs_result_df = FeatureSelector().select_features(result_pdf, n_features=250, write=True)
-    '''
+    
 
-    '''
+    
     results = []
     modelsUsersArr = []
     for num in range(40):
@@ -47,6 +48,8 @@ if __name__ == "__main__":
     stats = calc_stats_on_model(results, len(results[0]))
     stats.sort(key=lambda x: x[1], reverse=True)
     print stats
+    """
+    '''
     sample_df = pd.read_csv(sample_submission_file)
     result_df = sample_df
     for num in range(10, 40):
@@ -58,13 +61,17 @@ if __name__ == "__main__":
     sample_df.columns
     sample_df.to_csv(submission_file, index=False)
     print 'Done'
-    for num in range(10,40):
-        print "******* User {} ********".format(num)
-        classification_res = ClassificationModel(user_num=num).try_autoencoder()
-'''
-
-    print FeatureSelector().select_features(write=True)
+    '''
+    #print FeatureSelector().select_features(write=True)
     #a = pd.Series(  DataProcessor().get_all_commands_series())
     #print a
     #commands = pd.Series(DataProcessor().get_all_commands_series())
     #print commands.keys()
+    #
+    classification_res = []
+    for num in range(0, 10):
+        #print "******* User {} ********".format(num)
+        classification_res=(ClassificationModel(user_num=num).predictLabels())
+        for i in range(len(classification_res)):
+            print str(classification_res[i])
+    print len(classification_res)

@@ -1,4 +1,6 @@
 import numpy
+from django.db.models import Model
+from django.forms.widgets import Input
 
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
 from sklearn.model_selection import train_test_split
@@ -40,12 +42,14 @@ class ClassificationModel:
         self.sample_df = pd.read_csv(self.sample_submission_file)
         self.arr = df[(df["User"] == user_num) & (df["Label"] != 2)]
         if user_num < 10:
-            self.arr_all = df[df["Label"] == 0]
+            self.arr_all = df[df["Label"] != 2]
         else:
             # self.arr_all = df[(df["User"]!=user_num) & (df["Label"] != 2)]
-            self.arr_all = df[(df["Label"] == 0)]
-        X_All = self.arr_all.drop(columns=['Label', 'Segment', 'User', 'Unnamed: 0'])
-        X = self.arr.drop(columns=['Label', 'Segment', 'User', 'Unnamed: 0'])
+            self.arr_all = df[(df["Label"] != 2)]
+        #X_All = self.arr_all.drop(columns=['Label', 'Segment', 'User', 'Unnamed: 0'])
+        X_All = self.arr_all.drop(columns=['Label', 'Segment', 'User', 'User_index', 'Segment_index'])
+        #X = self.arr.drop(columns=['Label', 'Segment', 'User', 'Unnamed: 0'])
+        X = self.arr.drop(columns=['Label', 'Segment', 'User', 'User_index', 'Segment_index'])
         Y_All = self.arr_all.pop('Label').values
         Y = self.arr.pop('Label').values
         if user_num < 10:
@@ -69,36 +73,36 @@ class ClassificationModel:
 
         print clf.best_params_
 
-    def train_autoencoder(self, save=True):
-        input_dim = self.x_train.shape[1]
-        ratio = 0.2
-        input_layer = Input(shape=(input_dim,))
-        hidden = Dense(int(ratio * input_dim), activation='linear')(input_layer)
-        output_layer = Dense(units=1, activation='sigmoid')(hidden)
-
-        autoencoder = Model(inputs=input_layer, outputs=output_layer)
-
-        nb_epoch = 1
-        batch_size = 32
-        autoencoder.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
-        train = autoencoder.fit(self.x_train, self.y_train,
-                                epochs=nb_epoch,
-                                batch_size=batch_size,
-                                shuffle=True,
-                                validation_data=(self.x_test, self.y_test),
-                                verbose=1)
-        if save:
-            save_model(autoencoder, self.autoencoder_output_dir + str(self.user_num), overwrite=True)
-        return autoencoder
+    # def train_autoencoder(self, save=True):
+    #     input_dim = self.x_train.shape[1]
+    #     ratio = 0.2
+    #     input_layer = Input(shape=(input_dim,))
+    #     #hidden = Dense(int(ratio * input_dim), activation='linear')(input_layer)
+    #     #output_layer = Dense(units=1, activation='sigmoid')(hidden)
+    #
+    #     #autoencoder = Model(inputs=input_layer, outputs=output_layer)
+    #
+    #     nb_epoch = 1
+    #     batch_size = 32
+    #     #autoencoder.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
+    #     #train = autoencoder.fit(self.x_train, self.y_train,
+    #                             epochs=nb_epoch,
+    #                             batch_size=batch_size,
+    #                             shuffle=True,
+    #                             validation_data=(self.x_test, self.y_test),
+    #                             verbose=1)
+    #     if save:
+    #         save_model(autoencoder, self.autoencoder_output_dir + str(self.user_num), overwrite=True)
+    #     return autoencoder
 
     def predict_autoencoder(self, load=True):
-        autoencoder = load_model(self.autoencoder_output_dir + str(self.user_num))
+        #autoencoder = load_model(self.autoencoder_output_dir + str(self.user_num))
 
         df = pd.read_csv(self.feature_select_output_file)
         self.arr = df[df["User"] == self.user_num]
         X = self.arr.drop(columns=['Label', 'Segment', 'User', 'Unnamed: 0'])
-        preds = autoencoder.predict(X[50:])
-        print preds
+        #preds = autoencoder.predict(X[50:])
+        #print preds
 
     def compare_models(self):
         # prepare models
@@ -127,9 +131,11 @@ class ClassificationModel:
         # model = RandomForestClassifier(n_estimators=100)
         # model = LinearDiscriminantAnalysis()
         # model = RandomForestClassifier(n_neighbors=1, novelty=True, contamination='legacy')
-        model = OneClassSVM(nu=0.1, kernel='rbf', gamma=1e-5)
+        # model = OneClassSVM(nu=0.1, kernel='rbf', gamma=1e-5)
         # model = GaussianNB()
         # model = AdaBoostClassifier()
+        model = LocalOutlierFactor(n_neighbors=15, contamination=0.1, novelty=True)
+        # model = OneClassSVM(nu=0.1, kernel='rbf', gamma=1e-5)
         model.fit(self.x_train, self.y_train)
 
         # Save model
@@ -142,7 +148,8 @@ class ClassificationModel:
         # Load test dataset
         df = pd.read_csv(self.feature_select_output_file)
         self.arr = df[df["User"] == self.user_num]
-        X = self.arr.drop(columns=['Label', 'Segment', 'User', 'Unnamed: 0'])
+        #X = self.arr.drop(columns=['Label', 'Segment', 'User', 'Unnamed: 0'])
+        X = self.arr.drop(columns=['Label', 'Segment', 'User', 'User_index', 'Segment_index'])
         preds = model.predict(X[50:])
         correct_preds = []
 
