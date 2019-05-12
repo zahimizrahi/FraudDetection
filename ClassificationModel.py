@@ -44,8 +44,8 @@ class ClassificationModel:
         else:
             # self.arr_all = df[(df["User"]!=user_num) & (df["Label"] != 2)]
             self.arr_all = df[(df["Label"] == 0)]
-        X_All = self.arr_all.drop(columns=['Label', 'Segment', 'User', 'Unnamed: 0'])
-        X = self.arr.drop(columns=['Label', 'Segment', 'User', 'Unnamed: 0'])
+        X_All = self.arr_all.drop(columns=['Label', 'Segment', 'User', 'User_index', 'Segment_index'])
+        X = self.arr.drop(columns=['Label', 'Segment', 'User', 'User_index', 'Segment_index'])
         Y_All = self.arr_all.pop('Label').values
         Y = self.arr.pop('Label').values
         if user_num < 10:
@@ -96,7 +96,7 @@ class ClassificationModel:
 
         df = pd.read_csv(self.feature_select_output_file)
         self.arr = df[df["User"] == self.user_num]
-        X = self.arr.drop(columns=['Label', 'Segment', 'User', 'Unnamed: 0'])
+        X = self.arr.drop(columns=['Label', 'Segment', 'User', 'User_index', 'Segment_index'])
         preds = autoencoder.predict(X[50:])
         print preds
 
@@ -142,7 +142,7 @@ class ClassificationModel:
         # Load test dataset
         df = pd.read_csv(self.feature_select_output_file)
         self.arr = df[df["User"] == self.user_num]
-        X = self.arr.drop(columns=['Label', 'Segment', 'User', 'Unnamed: 0'])
+        X = self.arr.drop(columns=['Label', 'Segment', 'User', 'User_index', 'Segment_index'])
         preds = model.predict(X[50:])
         correct_preds = []
 
