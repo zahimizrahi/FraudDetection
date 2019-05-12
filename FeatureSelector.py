@@ -13,6 +13,63 @@ class FeatureSelector:
     feature_select_output_dir = 'outputs/FeatureSelector/'
     feature_select_output_file = 'outputs/FeatureSelector/all.csv'
 
+
+# added michal features
+
+    def command_avg_length(self, segments_list):
+        segments_avg_len = []
+        for seg in segments_list:
+            counter = 0
+            commands_list = seg.split(" ")
+            for cmd in commands_list:
+                counter += len(cmd)
+            segments_avg_len.append(counter / len(segments_list))
+        return segments_avg_len
+
+    def diff_commands_in_seg(self, segment_list):
+        diff_commands_in_segment = []
+        for seg in segment_list:
+            unique_list = []
+            commands_list = seg.split(" ")
+            for cmd in commands_list:
+                if cmd not in unique_list:
+                    unique_list.append(cmd)
+            diff_commands_in_segment.append(len(unique_list))
+        return diff_commands_in_segment
+
+    def num_of_sequences(self, segment_list):
+        num_of_seq_in_seg = []
+        for seg in segment_list:
+            counter = 0
+            commands_list = seg.split(" ")
+            for i in range(len(commands_list)):
+                if i + 1 < len(commands_list):
+                    if commands_list[i] == commands_list[i + 1]:
+                        counter += 1
+            num_of_seq_in_seg.append(counter)
+        return num_of_seq_in_seg
+
+    def avg_len_of_sequences(self, segment_list):
+        avg_len_of_seq = [0] * 150
+        for seg in segment_list:
+            counter = 0
+            sum_seq_len = 0
+            num_of_seq = 0
+            commands_list = seg.split(" ")
+            for i in range(len(commands_list)):
+                if i + 1 < len(commands_list):
+                    if commands_list[i] == commands_list[i + 1]:
+                        counter += 1
+                    elif counter > 0:
+                        sum_seq_len += counter
+                        num_of_seq += 1
+                        counter = 0
+            if num_of_seq > 0:
+                avg_len_of_seq.append(sum_seq_len / num_of_seq)
+        return avg_len_of_seq
+
+# for zahi features
+
     def load_label_user(self,user_num):
         with open(self.label_file, 'rt') as f:
             rows = csv.reader(f, delimiter=',')
@@ -101,7 +158,7 @@ class FeatureSelector:
         df.loc[:,'User_index'] = df['User']
         df.loc[:, 'Segment_index'] = df['Segment']
         df.set_index(['User_index', 'Segment_index'], inplace=True)
-
+        print 'Finished 1 gram!'
     # 2nd feature: TOP 40 2-gram - NOT INCLUDED RIGHT NOW
     # top-40 most common 2-gram  sequences
     # self.vectorize_all(n, type)
@@ -130,6 +187,7 @@ class FeatureSelector:
 
     # preparations for 3rd feature
         commands = pd.Series(DataProcessor().get_all_commands_series())
+        print commands.keys()
         partial_labels = self.get_partial_labels()
 
         distinct_first_50_commands = set()
@@ -138,6 +196,7 @@ class FeatureSelector:
                 for command in segment:
                     distinct_first_50_commands.add(command)
 
+        print 'Finished distinct_first_50_commands!'
     # preparation for 4th feature
         malicious_commands = defaultdict(list)
         for i in range(50, 150):
@@ -160,8 +219,16 @@ class FeatureSelector:
             malicious_commands_of_train_users_set - benign_commands_of_train_users_set
         commands_used_only_by_benign_train = benign_commands_of_train_users_set - malicious_commands_of_train_users_set
 
+        print 'Finished preparing sets of benign and malicious!'
 
+        dp_list = [DataProcessor().load_raw_data_single_user_segments(user_num, num_of_segments=150) for user_num in
+                   range(40)]
 
+        user_cmd_avg_len = [self.command_avg_length(dp_list[user_num]) for user_num in range(40)]
+        user_diff_cmd = [self.diff_commands_in_seg(dp_list[user_num]) for user_num in range(40)]
+        user_num_of_seq = [self.num_of_sequences(dp_list[user_num]) for user_num in range(40)]
+
+        print 'Finished preparing features of michal!'
     ### adding the additional features
         for user_num in commands.keys():
             for num_segment, segment in enumerate(commands[user_num]):
@@ -203,6 +270,16 @@ class FeatureSelector:
                 for count_key, count_val in count_dict.items():
                     df.loc[ (user_num, num_segment), 'Seq_of_commands_repeated_{}'.format(count_key)] = count_val
 
+
+                # added michal features
+
+                df.loc[(user_num, num_segment), 'Num_of_sequences'] = user_num_of_seq[user_num][num_segment]
+                df.loc[(user_num, num_segment), 'Diff_commands'] = user_diff_cmd[user_num][num_segment]
+                df.loc[(user_num, num_segment), 'Avg_commands_length'] = user_cmd_avg_len[user_num][num_segment]
+
+                print 'Done loop: User {}, Segment {} ...'.format(user_num, num_segment)
+
+        print 'Finished loop!'
         df.fillna(0, inplace=True)
 
         # remove overlapping counts
@@ -228,6 +305,11 @@ class FeatureSelector:
 
         del df['Seq_of_commands_repeated_2']
 
+        # added michal features
+        dp_list = [DataProcessor().load_raw_data_single_user_segments(user_num, num_of_segments=150) for user_num in
+               range(40)]
+
+        print 'Before write...'
         if write:
             df.to_csv(self.feature_select_output_file)
         return df

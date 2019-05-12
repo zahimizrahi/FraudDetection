@@ -1,6 +1,4 @@
 import numpy
-from django.db.models import Model
-from django.forms.widgets import Input
 
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
 from sklearn.model_selection import train_test_split
@@ -42,13 +40,11 @@ class ClassificationModel:
         self.sample_df = pd.read_csv(self.sample_submission_file)
         self.arr = df[(df["User"] == user_num) & (df["Label"] != 2)]
         if user_num < 10:
-            self.arr_all = df[df["Label"] != 2]
+            self.arr_all = df[df["Label"] == 0]
         else:
             # self.arr_all = df[(df["User"]!=user_num) & (df["Label"] != 2)]
-            self.arr_all = df[(df["Label"] != 2)]
-        #X_All = self.arr_all.drop(columns=['Label', 'Segment', 'User', 'Unnamed: 0'])
+            self.arr_all = df[(df["Label"] == 0)]
         X_All = self.arr_all.drop(columns=['Label', 'Segment', 'User', 'User_index', 'Segment_index'])
-        #X = self.arr.drop(columns=['Label', 'Segment', 'User', 'Unnamed: 0'])
         X = self.arr.drop(columns=['Label', 'Segment', 'User', 'User_index', 'Segment_index'])
         Y_All = self.arr_all.pop('Label').values
         Y = self.arr.pop('Label').values
