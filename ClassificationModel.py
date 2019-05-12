@@ -18,6 +18,10 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.metrics import classification_report
 import pickle
+#from keras.models import Model, load_model
+#from keras.layers import Input, Dense
+#from keras.models import load_model
+#from keras.models import save_model
 
 SEED = 10
 
@@ -27,19 +31,21 @@ class ClassificationModel:
     feature_select_output_file = 'outputs/FeatureSelector/all.csv'
     sample_submission_file = 'resources/sample_submission.csv'
     submission_file = 'final_submission.csv'
+    autoencoder_output_dir = 'outputs/autoencoders/'
 
     def __init__(self, user_num):
         # TODO - use all users data
         self.user_num = user_num
         df = pd.read_csv(self.feature_select_output_file)
         self.sample_df = pd.read_csv(self.sample_submission_file)
-        self.arr = df[(df["User"]==user_num) & (df["Label"]!=2)]
+        self.arr = df[(df["User"] == user_num) & (df["Label"] != 2)]
         if user_num < 10:
             self.arr_all = df[df["Label"] == 0]
         else:
-            self.arr_all = df[(df["User"]!=user_num) & (df["Label"]==0)]
-        X_All = self.arr_all.drop(columns=['Label', 'Segment','User', 'Unnamed: 0'])
-        X = self.arr.drop(columns=['Label', 'Segment','User', 'Unnamed: 0'])
+            # self.arr_all = df[(df["User"]!=user_num) & (df["Label"] != 2)]
+            self.arr_all = df[(df["Label"] == 0)]
+        X_All = self.arr_all.drop(columns=['Label', 'Segment', 'User', 'Unnamed: 0'])
+        X = self.arr.drop(columns=['Label', 'Segment', 'User', 'Unnamed: 0'])
         Y_All = self.arr_all.pop('Label').values
         Y = self.arr.pop('Label').values
         if user_num < 10:
@@ -50,7 +56,7 @@ class ClassificationModel:
     def optimize_parameters(self):
         tuned_parameters = [{'kernel': ['rbf'], 'gamma': ['auto', 5, 2, 1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5],
                              'nu': [0.1]}]
-        #tuned_parameters = { 'novelty': [True], 'n_neighbors': range(1,21, 2),
+        # tuned_parameters = { 'novelty': [True], 'n_neighbors': range(1,21, 2),
         #                     'contamination': ['legacy', 0.1, 0.2, 0.3, 0.5]}
         # Split the dataset in two equal parts
         X_train1, X_test1, y_train1, y_test1 = train_test_split(
@@ -62,6 +68,37 @@ class ClassificationModel:
         clf.fit(X_train1, y_train1)
 
         print clf.best_params_
+
+    def train_autoencoder(self, save=True):
+        input_dim = self.x_train.shape[1]
+        ratio = 0.2
+        input_layer = Input(shape=(input_dim,))
+        hidden = Dense(int(ratio * input_dim), activation='linear')(input_layer)
+        output_layer = Dense(units=1, activation='sigmoid')(hidden)
+
+        autoencoder = Model(inputs=input_layer, outputs=output_layer)
+
+        nb_epoch = 1
+        batch_size = 32
+        autoencoder.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
+        train = autoencoder.fit(self.x_train, self.y_train,
+                                epochs=nb_epoch,
+                                batch_size=batch_size,
+                                shuffle=True,
+                                validation_data=(self.x_test, self.y_test),
+                                verbose=1)
+        if save:
+            save_model(autoencoder, self.autoencoder_output_dir + str(self.user_num), overwrite=True)
+        return autoencoder
+
+    def predict_autoencoder(self, load=True):
+        autoencoder = load_model(self.autoencoder_output_dir + str(self.user_num))
+
+        df = pd.read_csv(self.feature_select_output_file)
+        self.arr = df[df["User"] == self.user_num]
+        X = self.arr.drop(columns=['Label', 'Segment', 'User', 'Unnamed: 0'])
+        preds = autoencoder.predict(X[50:])
+        print preds
 
     def compare_models(self):
         # prepare models
@@ -87,11 +124,13 @@ class ClassificationModel:
 
     def predictLabels(self):
         # Finalize model
-        #model = RandomForestClassifier(n_estimators=100)
-        #model = LinearDiscriminantAnalysis()
-        #model = LocalOutlierFactor(n_neighbors=1, novelty=True, contamination='legacy')
-        model = OneClassSVM(nu=0.1, kernel='rbf', gamma='auto')
-        model.fit(self.x_train)
+        # model = RandomForestClassifier(n_estimators=100)
+        # model = LinearDiscriminantAnalysis()
+        # model = RandomForestClassifier(n_neighbors=1, novelty=True, contamination='legacy')
+        model = OneClassSVM(nu=0.1, kernel='rbf', gamma=1e-5)
+        # model = GaussianNB()
+        # model = AdaBoostClassifier()
+        model.fit(self.x_train, self.y_train)
 
         # Save model
         filename = 'Final_Model.sav'
@@ -103,7 +142,7 @@ class ClassificationModel:
         # Load test dataset
         df = pd.read_csv(self.feature_select_output_file)
         self.arr = df[df["User"] == self.user_num]
-        X = self.arr.drop(columns=['Label', 'Segment','User', 'Unnamed: 0'])
+        X = self.arr.drop(columns=['Label', 'Segment', 'User', 'Unnamed: 0'])
         preds = model.predict(X[50:])
         correct_preds = []
 
@@ -115,7 +154,6 @@ class ClassificationModel:
 
         print np.asarray(correct_preds)
         return np.asarray(correct_preds)
-
 
 
 
