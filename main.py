@@ -32,11 +32,13 @@ def calc_stats_on_model(results, length):
     return stats
 
 def validation(results, validation_set):
-    count_errors = 0
+    grade = 0.0
     for i in range(len(results)):
-        if results[i] != validation_set[i]:
-            count_errors += 1
-    print "\nErrors: " + str(count_errors) + "/1000"
+        if results[i] == 1 and validation_set[i] == 1:
+            grade += 9
+        elif results[i] == 0 and validation_set[i] == 0:
+            grade += 1
+    print "\nGrade: " + str(grade/5400)
 
 if __name__ == "__main__":
     """

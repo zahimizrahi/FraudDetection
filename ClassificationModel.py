@@ -169,7 +169,7 @@ class ClassificationModel:
         legend = plt.legend(loc='upper left')
         legend.legendHandles[0]._sizes = [10]
         legend.legendHandles[1]._sizes = [20]
-        plt.show()
+        #plt.show()
 
         return np.asarray(correct_preds)
 
