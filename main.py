@@ -80,25 +80,16 @@ if __name__ == "__main__":
     #commands = pd.Series(DataProcessor().get_all_commands_series())
     #print commands.keys()
 
-    '''
+    result_df = pd.read_csv('outputs/FeatureSelector/all.csv')
     v = pd.read_csv(validation_file)
     validation_set = v['Label']
     classification_res = []
     for num in range(0, 10):
         print "******* User {} ********".format(num)
-        classification_res.extend(ClassificationModel(user_num=num).predictLabels())
+        classification_res.extend(ClassificationModel(user_num=num, df=result_df).predictLabels())
     validation(classification_res, validation_set)
-    '''
-    # Scatterplot Matrix
-    df = pd.read_csv('outputs/FeatureSelector/all_together.csv')
-    skb = SelectKBest(k=30)
-    print skb
-    cm = ClassificationModel(user_num=0, )
-    x_train = cm.x_train
-    y_train = cm.y_train
-    skb.fit(x_train, y_train)
-    cols = pd.Series(df.columns.tolist()[:-1])[skb.get_support()].tolist()
-    df = df[cols]
-    df = df.drop(columns=['Label', 'Segment', 'User', 'User_index', 'Segment_index'])
-    scatter_matrix(df)
-    plt.show()
+
+
+    for num in range(10, 4r0):
+        print "******* User {} ********".format(num)
+        classification_res.extend(ClassificationModel(user_num=num, df=result_df).predictLabels())

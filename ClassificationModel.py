@@ -18,10 +18,11 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.metrics import classification_report
 import pickle
-#from keras.models import Model, load_model
-#from keras.layers import Input, Dense
-#from keras.models import load_model
-#from keras.models import save_model
+
+# from keras.models import Model, load_model
+# from keras.layers import Input, Dense
+# from keras.models import load_model
+# from keras.models import save_model
 
 SEED = 10
 
@@ -39,15 +40,20 @@ class ClassificationModel:
         self.df = df.copy()
         self.sample_df = pd.read_csv(self.sample_submission_file)
         # Finalize model
-        # model = RandomForestClassifier(n_estimators=100)
+        self.model = RandomForestClassifier(n_estimators=10)
         # model = LinearDiscriminantAnalysis()
         # model = RandomForestClassifier(n_neighbors=1, novelty=True, contamination='legacy')
         # model = OneClassSVM(nu=0.1, kernel='rbf', gamma=1e-5)
-        # model = GaussianNB()
-        self.model = AdaBoostClassifier()
-        #self.model = LocalOutlierFactor(n_neighbors=20, contamination=0.1)
-        # model = OneClassSVM(nu=0.1, kernel='rbf', gamma=1e-5)
-
+        # self.model = GaussianNB()
+        # self.model = AdaBoostClassifier()
+        # self.model = LocalOutlierFactor(n_neighbors=20, contamination=0.1)
+        self.model = OneClassSVM(nu=0.1, kernel='rbf', gamma=1e-5)
+        if user_num < 10:
+            self.arr = self.df[(self.df['User'] == user_num)]
+        else:
+            self.arr = self.df[(self.df['User'] == user_num) & (self.df['Label'] == 0)]
+        self.y_train = self.arr.pop('Label')
+        self.x_train = self.arr
 
     def optimize_parameters(self):
         tuned_parameters = [{'kernel': ['rbf'], 'gamma': ['auto', 5, 2, 1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5],
@@ -65,22 +71,27 @@ class ClassificationModel:
 
         print clf.best_params_
 
-    def train_models(self, model):
+    def train_models(self, model=None):
         df = self.df.copy()
+        normal_user_df = self.df.copy()
         normal_user_df = df[df["User"] == self.user_num].copy()
         normal_user_df['Label'] = 0
+        other_user_df = self.df.copy()
         for other in range(40):
             if self.user_num != other:
-                other_user_df = df[df["User"] == self.other].copy()
+                other_user_df = df[df['User'] == other].copy()
                 other_user_df['Label'] = 1
-            normal_user_df.append(other_user_df)
+            normal_user_df = normal_user_df.append(other_user_df)
         self.y_train = normal_user_df.pop('Label')
-        self.x_train = normal_user_df
-        return self.model.fit(self.x_train, self.y_train)
+        self.x_train = normal_user_df.drop(columns=['Segment', 'User', 'User_index', 'Segment_index'])
+        if model is None:
+            return self.model.fit(self.x_train, self.y_train)
+        else:
+            return model.fit(self.x_train, self.y_train)
 
     def predictLabels(self):
 
-        self.model.fit_predict(self.x_train, self.y_train)
+        self.train_models()
 
         # Save model
         filename = 'Final_Model.sav'
@@ -95,7 +106,7 @@ class ClassificationModel:
         # X = self.arr.drop(columns=['Label', 'Segment', 'User', 'Unnamed: 0'])
         X = self.arr.drop(columns=['Label', 'Segment', 'User', 'User_index', 'Segment_index'])
         X = numpy.array(X)
-        preds = self.model.fit_predict(X[50:])
+        preds = self.model.predict(X[50:])
         correct_preds = []
 
         for pred in preds:
@@ -105,7 +116,10 @@ class ClassificationModel:
                 correct_preds.append(0)
 
         print np.asarray(correct_preds)
+        return np.asarray(correct_preds)
 
+
+'''
         X_scores = self.model.negative_outlier_factor_
 
         plt.title("Local Outlier Factor (LOF)")
@@ -124,30 +138,6 @@ class ClassificationModel:
         # plt.show()
 
         return np.asarray(correct_preds)
-
-
-'''
-    def compare_models(self):
-        # prepare models
-        models = [('LinearDiscriminantAnalysis', LinearDiscriminantAnalysis()),
-                  ('MLPClassifier', MLPClassifier()),
-                  ('KNeighbors', KNeighborsClassifier()),
-                  ('GaussianNaiveBayes', GaussianNB()),
-                  ('DecisionTree', DecisionTreeClassifier()),
-                  ('RandomForest', RandomForestClassifier(n_estimators=100)),
-                  ('AdaBoost', AdaBoostClassifier()),
-                  ('OneClassSVM', OneClassSVM(gamma='scale', nu=0.1))]
-        # evaluate each model in turn
-        results = []
-        names = []
-        for name, model in models:
-            kfold = model_selection.KFold(n_splits=5, random_state=0)
-            cv_results = model_selection.cross_val_score(model, self.x_test, self.y_test, cv=kfold, scoring='accuracy')
-            results.append((name, cv_results.mean(), cv_results.std()))
-            names.append(name)
-            msg = '{}-{}-{}'.format(name, cv_results.mean(), cv_results.std())
-            print msg
-        return results
 '''
 
 
