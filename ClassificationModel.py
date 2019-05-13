@@ -38,20 +38,18 @@ class ClassificationModel:
         self.user_num = user_num
         df = pd.read_csv(self.feature_select_output_file)
         self.sample_df = pd.read_csv(self.sample_submission_file)
-        self.arr = df[(df["User"] == user_num) & (df["Label"] != 2)]
-        if user_num < 10:
-            self.arr_all = df[df["Label"] == 0]
-        else:
-            # self.arr_all = df[(df["User"]!=user_num) & (df["Label"] != 2)]
-            self.arr_all = df[(df["Label"] == 0)]
-        X_All = self.arr_all.drop(columns=['Label', 'Segment', 'User', 'User_index', 'Segment_index'])
+        self.arr = df[(df["User"] == user_num)]
+        #self.arr_all = df[df["Label"] == 0]
+        #X_All = self.arr_all.drop(columns=['Label', 'Segment', 'User', 'User_index', 'Segment_index'])
         X = self.arr.drop(columns=['Label', 'Segment', 'User', 'User_index', 'Segment_index'])
-        Y_All = self.arr_all.pop('Label').values
+        #Y_All = self.arr_all.pop('Label').values
         Y = self.arr.pop('Label').values
+        #self.x_train, self.x_test, self.y_train, self.y_test = X, X[50:], Y, Y[50:]
         if user_num < 10:
-            self.x_train, self.x_test, self.y_train, self.y_test = X_All, X[50:], Y_All, Y[50:]
+            self.x_train, self.y_train= X, Y
         else:
-            self.x_train, self.x_test, self.y_train, self.y_test = X_All, X, Y_All, Y
+            self.x_train, self.y_train = X[:50], Y[:50]
+
 
     def optimize_parameters(self):
         tuned_parameters = [{'kernel': ['rbf'], 'gamma': ['auto', 5, 2, 1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5],
@@ -130,9 +128,9 @@ class ClassificationModel:
         # model = OneClassSVM(nu=0.1, kernel='rbf', gamma=1e-5)
         # model = GaussianNB()
         # model = AdaBoostClassifier()
-        model = LocalOutlierFactor(n_neighbors=15, contamination=0.1, novelty=True)
+        model = LocalOutlierFactor(n_neighbors=27, contamination=0.1)
         # model = OneClassSVM(nu=0.1, kernel='rbf', gamma=1e-5)
-        model.fit(self.x_train, self.y_train)
+        model.fit_predict(self.x_train, self.y_train)
 
         # Save model
         filename = 'Final_Model.sav'
@@ -146,7 +144,7 @@ class ClassificationModel:
         self.arr = df[df["User"] == self.user_num]
         #X = self.arr.drop(columns=['Label', 'Segment', 'User', 'Unnamed: 0'])
         X = self.arr.drop(columns=['Label', 'Segment', 'User', 'User_index', 'Segment_index'])
-        preds = model.predict(X[50:])
+        preds = model.fit_predict(X[50:])
         correct_preds = []
 
         for pred in preds:

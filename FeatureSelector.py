@@ -50,22 +50,24 @@ class FeatureSelector:
         return num_of_seq_in_seg
 
     def avg_len_of_sequences(self, segment_list):
-        avg_len_of_seq = [0] * 150
-        for seg in segment_list:
+        avg_len_of_seq = []
+        for i in range(len(segment_list)):
             counter = 0
             sum_seq_len = 0
             num_of_seq = 0
-            commands_list = seg.split(" ")
+            commands_list = segment_list[i].split(" ")
             for i in range(len(commands_list)):
-                if i + 1 < len(commands_list):
-                    if commands_list[i] == commands_list[i + 1]:
+                if i+1 < len(commands_list):
+                    if commands_list[i] == commands_list[i+1]:
                         counter += 1
                     elif counter > 0:
                         sum_seq_len += counter
                         num_of_seq += 1
                         counter = 0
             if num_of_seq > 0:
-                avg_len_of_seq.append(sum_seq_len / num_of_seq)
+                avg_len_of_seq.append(sum_seq_len/num_of_seq)
+            else:
+                avg_len_of_seq.append(0)
         return avg_len_of_seq
 
 # for zahi features

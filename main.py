@@ -28,6 +28,12 @@ def calc_stats_on_model(results, length):
              for i in range(length)]
     return stats
 
+def validation(results, validation_set):
+    count_errors = 0
+    for i in range(len(results)):
+        if results[i] != validation_set[i]:
+            count_errors += 1
+    print "\nErrors: " + str(count_errors) + "/1000"
 
 if __name__ == "__main__":
     """
@@ -67,11 +73,11 @@ if __name__ == "__main__":
     #print a
     #commands = pd.Series(DataProcessor().get_all_commands_series())
     #print commands.keys()
-    #
+
+    v = pd.read_csv(validation_file)
+    validation_set = v['Label']
     classification_res = []
     for num in range(0, 10):
-        #print "******* User {} ********".format(num)
-        classification_res=(ClassificationModel(user_num=num).predictLabels())
-        for i in range(len(classification_res)):
-            print str(classification_res[i])
-    print len(classification_res)
+        print "******* User {} ********".format(num)
+        classification_res.extend(ClassificationModel(user_num=num).predictLabels())
+    validation(classification_res, validation_set)
