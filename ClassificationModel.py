@@ -38,17 +38,15 @@ class ClassificationModel:
         self.user_num = user_num
         df = pd.read_csv(self.feature_select_output_file)
         self.sample_df = pd.read_csv(self.sample_submission_file)
-        self.arr = df[(df["User"] == user_num)]
+        self.arr = df[(df["User"] != user_num) & df['Label'] != 2]
         #self.arr_all = df[df["Label"] == 0]
         #X_All = self.arr_all.drop(columns=['Label', 'Segment', 'User', 'User_index', 'Segment_index'])
         X = self.arr.drop(columns=['Label', 'Segment', 'User', 'User_index', 'Segment_index'])
         #Y_All = self.arr_all.pop('Label').values
         Y = self.arr.pop('Label').values
         #self.x_train, self.x_test, self.y_train, self.y_test = X, X[50:], Y, Y[50:]
-        if user_num < 10:
-            self.x_train, self.y_train= X, Y
-        else:
-            self.x_train, self.y_train = X[:50], Y[:50]
+        self.x_train, self.y_train = X, Y
+
 
 
     def optimize_parameters(self):
@@ -144,6 +142,7 @@ class ClassificationModel:
         self.arr = df[df["User"] == self.user_num]
         #X = self.arr.drop(columns=['Label', 'Segment', 'User', 'Unnamed: 0'])
         X = self.arr.drop(columns=['Label', 'Segment', 'User', 'User_index', 'Segment_index'])
+        X = numpy.array(X)
         preds = model.fit_predict(X[50:])
         correct_preds = []
 
@@ -154,6 +153,24 @@ class ClassificationModel:
                 correct_preds.append(0)
 
         print np.asarray(correct_preds)
+
+        X_scores = model.negative_outlier_factor_
+
+        plt.title("Local Outlier Factor (LOF)")
+        plt.scatter(X[:, 0], X[:, 1], color='k', s=3., label='Data points')
+        # plot circles with radius proportional to the outlier scores
+        radius = (X_scores.max() - X_scores) / (X_scores.max() - X_scores.min())
+        plt.scatter(X[:, 0], X[:, 1], s=1000 * radius, edgecolors='r',
+                    facecolors='none', label='Outlier scores')
+        plt.axis('tight')
+        plt.xlim((0, 60))
+        plt.ylim((0, 60))
+        #plt.xlabel("prediction errors: %d" % (n_errors))
+        legend = plt.legend(loc='upper left')
+        legend.legendHandles[0]._sizes = [10]
+        legend.legendHandles[1]._sizes = [20]
+        plt.show()
+
         return np.asarray(correct_preds)
 
 

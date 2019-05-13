@@ -58,7 +58,7 @@ if __name__ == "__main__":
     stats.sort(key=lambda x: x[1], reverse=True)
     print stats
     """
-
+    '''
     sample_df = pd.read_csv(sample_submission_file)
     result_df = sample_df
     for num in range(10, 40):
@@ -70,14 +70,14 @@ if __name__ == "__main__":
     sample_df.columns
     sample_df.to_csv(submission_file, index=False)
     print 'Done'
-
+    '''
 
     #print FeatureSelector().select_features(write=True)
     #a = pd.Series(  DataProcessor().get_all_commands_series())
     #print a
     #commands = pd.Series(DataProcessor().get_all_commands_series())
     #print commands.keys()
-    '''
+
     v = pd.read_csv(validation_file)
     validation_set = v['Label']
     classification_res = []
@@ -85,9 +85,8 @@ if __name__ == "__main__":
         print "******* User {} ********".format(num)
         classification_res.extend(ClassificationModel(user_num=num).predictLabels())
     validation(classification_res, validation_set)
-    '''
-    # Scatterplot Matrix
 
+    # Scatterplot Matrix
     df = pd.read_csv('outputs/FeatureSelector/all.csv')
     df = df.drop(columns=['Label', 'Segment', 'User', 'User_index', 'Segment_index'])
     scatter_matrix(df)
