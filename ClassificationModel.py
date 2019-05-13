@@ -33,20 +33,20 @@ class ClassificationModel:
     submission_file = 'final_submission.csv'
     autoencoder_output_dir = 'outputs/autoencoders/'
 
-    def __init__(self, user_num):
+    def __init__(self, user_num, df):
         # TODO - use all users data
         self.user_num = user_num
-        df = pd.read_csv(self.feature_select_output_file)
+        self.df = df.copy()
         self.sample_df = pd.read_csv(self.sample_submission_file)
-        self.arr = df[(df["User"] != user_num) & df['Label'] != 2]
-        #self.arr_all = df[df["Label"] == 0]
-        #X_All = self.arr_all.drop(columns=['Label', 'Segment', 'User', 'User_index', 'Segment_index'])
-        X = self.arr.drop(columns=['Label', 'Segment', 'User', 'User_index', 'Segment_index'])
-        #Y_All = self.arr_all.pop('Label').values
-        Y = self.arr.pop('Label').values
-        #self.x_train, self.x_test, self.y_train, self.y_test = X, X[50:], Y, Y[50:]
-        self.x_train, self.y_train = X, Y
-
+        # Finalize model
+        # model = RandomForestClassifier(n_estimators=100)
+        # model = LinearDiscriminantAnalysis()
+        # model = RandomForestClassifier(n_neighbors=1, novelty=True, contamination='legacy')
+        # model = OneClassSVM(nu=0.1, kernel='rbf', gamma=1e-5)
+        # model = GaussianNB()
+        self.model = AdaBoostClassifier()
+        #self.model = LocalOutlierFactor(n_neighbors=20, contamination=0.1)
+        # model = OneClassSVM(nu=0.1, kernel='rbf', gamma=1e-5)
 
 
     def optimize_parameters(self):
@@ -65,37 +65,68 @@ class ClassificationModel:
 
         print clf.best_params_
 
-    # def train_autoencoder(self, save=True):
-    #     input_dim = self.x_train.shape[1]
-    #     ratio = 0.2
-    #     input_layer = Input(shape=(input_dim,))
-    #     #hidden = Dense(int(ratio * input_dim), activation='linear')(input_layer)
-    #     #output_layer = Dense(units=1, activation='sigmoid')(hidden)
-    #
-    #     #autoencoder = Model(inputs=input_layer, outputs=output_layer)
-    #
-    #     nb_epoch = 1
-    #     batch_size = 32
-    #     #autoencoder.compile(optimizer='adam', loss='mean_squared_error', metrics=['accuracy'])
-    #     #train = autoencoder.fit(self.x_train, self.y_train,
-    #                             epochs=nb_epoch,
-    #                             batch_size=batch_size,
-    #                             shuffle=True,
-    #                             validation_data=(self.x_test, self.y_test),
-    #                             verbose=1)
-    #     if save:
-    #         save_model(autoencoder, self.autoencoder_output_dir + str(self.user_num), overwrite=True)
-    #     return autoencoder
+    def train_models(self, model):
+        df = self.df.copy()
+        normal_user_df = df[df["User"] == self.user_num].copy()
+        normal_user_df['Label'] = 0
+        for other in range(40):
+            if self.user_num != other:
+                other_user_df = df[df["User"] == self.other].copy()
+                other_user_df['Label'] = 1
+            normal_user_df.append(other_user_df)
+        self.y_train = normal_user_df.pop('Label')
+        self.x_train = normal_user_df
+        return self.model.fit(self.x_train, self.y_train)
 
-    def predict_autoencoder(self, load=True):
-        #autoencoder = load_model(self.autoencoder_output_dir + str(self.user_num))
+    def predictLabels(self):
 
+        self.model.fit_predict(self.x_train, self.y_train)
+
+        # Save model
+        filename = 'Final_Model.sav'
+        pickle.dump(self.model, open(filename, 'wb'))
+
+        # Load model and use it to make new predictions
+        loaded_model = pickle.load(open(filename, 'rb'))
+
+        # Load test dataset
         df = pd.read_csv(self.feature_select_output_file)
         self.arr = df[df["User"] == self.user_num]
-        X = self.arr.drop(columns=['Label', 'Segment', 'User', 'Unnamed: 0'])
-        #preds = autoencoder.predict(X[50:])
-        #print preds
+        # X = self.arr.drop(columns=['Label', 'Segment', 'User', 'Unnamed: 0'])
+        X = self.arr.drop(columns=['Label', 'Segment', 'User', 'User_index', 'Segment_index'])
+        X = numpy.array(X)
+        preds = self.model.fit_predict(X[50:])
+        correct_preds = []
 
+        for pred in preds:
+            if pred == -1:
+                correct_preds.append(1)
+            else:
+                correct_preds.append(0)
+
+        print np.asarray(correct_preds)
+
+        X_scores = self.model.negative_outlier_factor_
+
+        plt.title("Local Outlier Factor (LOF)")
+        plt.scatter(X[:, 0], X[:, 1], color='k', s=3., label='Data points')
+        # plot circles with radius proportional to the outlier scores
+        radius = (X_scores.max() - X_scores) / (X_scores.max() - X_scores.min())
+        plt.scatter(X[:, 0], X[:, 1], s=1000 * radius, edgecolors='r',
+                    facecolors='none', label='Outlier scores')
+        plt.axis('tight')
+        plt.xlim((0, 60))
+        plt.ylim((0, 60))
+        # plt.xlabel("prediction errors: %d" % (n_errors))
+        legend = plt.legend(loc='upper left')
+        legend.legendHandles[0]._sizes = [10]
+        legend.legendHandles[1]._sizes = [20]
+        # plt.show()
+
+        return np.asarray(correct_preds)
+
+
+'''
     def compare_models(self):
         # prepare models
         models = [('LinearDiscriminantAnalysis', LinearDiscriminantAnalysis()),
@@ -117,61 +148,8 @@ class ClassificationModel:
             msg = '{}-{}-{}'.format(name, cv_results.mean(), cv_results.std())
             print msg
         return results
+'''
 
-    def predictLabels(self):
-        # Finalize model
-        # model = RandomForestClassifier(n_estimators=100)
-        # model = LinearDiscriminantAnalysis()
-        # model = RandomForestClassifier(n_neighbors=1, novelty=True, contamination='legacy')
-        # model = OneClassSVM(nu=0.1, kernel='rbf', gamma=1e-5)
-        # model = GaussianNB()
-        # model = AdaBoostClassifier()
-        model = LocalOutlierFactor(n_neighbors=20, contamination=0.1)
-        # model = OneClassSVM(nu=0.1, kernel='rbf', gamma=1e-5)
-        model.fit_predict(self.x_train, self.y_train)
-
-        # Save model
-        filename = 'Final_Model.sav'
-        pickle.dump(model, open(filename, 'wb'))
-
-        # Load model and use it to make new predictions
-        loaded_model = pickle.load(open(filename, 'rb'))
-
-        # Load test dataset
-        df = pd.read_csv(self.feature_select_output_file)
-        self.arr = df[df["User"] == self.user_num]
-        #X = self.arr.drop(columns=['Label', 'Segment', 'User', 'Unnamed: 0'])
-        X = self.arr.drop(columns=['Label', 'Segment', 'User', 'User_index', 'Segment_index'])
-        X = numpy.array(X)
-        preds = model.fit_predict(X[50:])
-        correct_preds = []
-
-        for pred in preds:
-            if pred == -1:
-                correct_preds.append(1)
-            else:
-                correct_preds.append(0)
-
-        print np.asarray(correct_preds)
-
-        X_scores = model.negative_outlier_factor_
-
-        plt.title("Local Outlier Factor (LOF)")
-        plt.scatter(X[:, 0], X[:, 1], color='k', s=3., label='Data points')
-        # plot circles with radius proportional to the outlier scores
-        radius = (X_scores.max() - X_scores) / (X_scores.max() - X_scores.min())
-        plt.scatter(X[:, 0], X[:, 1], s=1000 * radius, edgecolors='r',
-                    facecolors='none', label='Outlier scores')
-        plt.axis('tight')
-        plt.xlim((0, 60))
-        plt.ylim((0, 60))
-        #plt.xlabel("prediction errors: %d" % (n_errors))
-        legend = plt.legend(loc='upper left')
-        legend.legendHandles[0]._sizes = [10]
-        legend.legendHandles[1]._sizes = [20]
-        #plt.show()
-
-        return np.asarray(correct_preds)
 
 
 

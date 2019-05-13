@@ -9,7 +9,7 @@ import csv
 
 import matplotlib.pyplot as plt
 from pandas.plotting import scatter_matrix
-
+from sklearn.feature_selection import SelectKBest
 partial_labels_path= 'resources/partial_labels.csv'
 
 
@@ -80,6 +80,7 @@ if __name__ == "__main__":
     #commands = pd.Series(DataProcessor().get_all_commands_series())
     #print commands.keys()
 
+    '''
     v = pd.read_csv(validation_file)
     validation_set = v['Label']
     classification_res = []
@@ -87,9 +88,17 @@ if __name__ == "__main__":
         print "******* User {} ********".format(num)
         classification_res.extend(ClassificationModel(user_num=num).predictLabels())
     validation(classification_res, validation_set)
-
+    '''
     # Scatterplot Matrix
-    df = pd.read_csv('outputs/FeatureSelector/all.csv')
+    df = pd.read_csv('outputs/FeatureSelector/all_together.csv')
+    skb = SelectKBest(k=30)
+    print skb
+    cm = ClassificationModel(user_num=0, )
+    x_train = cm.x_train
+    y_train = cm.y_train
+    skb.fit(x_train, y_train)
+    cols = pd.Series(df.columns.tolist()[:-1])[skb.get_support()].tolist()
+    df = df[cols]
     df = df.drop(columns=['Label', 'Segment', 'User', 'User_index', 'Segment_index'])
     scatter_matrix(df)
     plt.show()
