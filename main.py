@@ -38,7 +38,7 @@ def validation(results, validation_set):
             grade += 9
         elif results[i] == 0 and validation_set[i] == 0:
             grade += 1
-    print "\nGrade: " + str(grade/5400)
+    print "\nGrade: " + str(grade/1800)
 
 if __name__ == "__main__":
     """
