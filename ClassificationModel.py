@@ -128,7 +128,7 @@ class ClassificationModel:
         # model = OneClassSVM(nu=0.1, kernel='rbf', gamma=1e-5)
         # model = GaussianNB()
         # model = AdaBoostClassifier()
-        model = LocalOutlierFactor(n_neighbors=27, contamination=0.1)
+        model = LocalOutlierFactor(n_neighbors=20, contamination=0.1)
         # model = OneClassSVM(nu=0.1, kernel='rbf', gamma=1e-5)
         model.fit_predict(self.x_train, self.y_train)
 
