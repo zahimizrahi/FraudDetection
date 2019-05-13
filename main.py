@@ -84,12 +84,19 @@ if __name__ == "__main__":
     v = pd.read_csv(validation_file)
     validation_set = v['Label']
     classification_res = []
+
+
+    for num in range(0, 10):
+        print "******* User {} ********".format(num)
+        ClassificationModel(user_num=num, df=result_df).optimize_parameters()
+
+
     for num in range(0, 10):
         print "******* User {} ********".format(num)
         classification_res.extend(ClassificationModel(user_num=num, df=result_df).predictLabels())
     validation(classification_res, validation_set)
 
 
-    for num in range(10, 4r0):
+    for num in range(10, 40):
         print "******* User {} ********".format(num)
         classification_res.extend(ClassificationModel(user_num=num, df=result_df).predictLabels())

@@ -61,12 +61,13 @@ class ClassificationModel:
         # tuned_parameters = { 'novelty': [True], 'n_neighbors': range(1,21, 2),
         #                     'contamination': ['legacy', 0.1, 0.2, 0.3, 0.5]}
         # Split the dataset in two equal parts
+        self.train_models()
         X_train1, X_test1, y_train1, y_test1 = train_test_split(
             self.x_train, self.y_train, test_size=0.5, random_state=0)
 
         score = 'accuracy'
         print "# Tuning hyper-parameters for %s" % score
-        clf = GridSearchCV(OneClassSVM(), tuned_parameters, cv=5, scoring=score)
+        clf = GridSearchCV(self.model, tuned_parameters, cv=5, scoring=score)
         clf.fit(X_train1, y_train1)
 
         print clf.best_params_
