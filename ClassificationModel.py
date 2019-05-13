@@ -75,12 +75,12 @@ class ClassificationModel:
     def train_models(self, model=None):
         df = self.df.copy()
         normal_user_df = self.df.copy()
-        normal_user_df = df[df["User"] == self.user_num].copy()
+        normal_user_df = df[(df["User"] == self.user_num) & (df["Segment"].isin(range(50)))].copy()
         normal_user_df['Label'] = 0
         other_user_df = self.df.copy()
         for other in range(40):
             if self.user_num != other:
-                other_user_df = df[df['User'] == other].copy()
+                other_user_df = df[(df['User'] == other) & (df["Segment"].isin(range(50)))].copy()
                 other_user_df['Label'] = 1
             normal_user_df = normal_user_df.append(other_user_df)
         self.y_train = normal_user_df.pop('Label')

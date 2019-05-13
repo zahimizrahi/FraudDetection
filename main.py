@@ -86,7 +86,7 @@ if __name__ == "__main__":
     classification_res = []
 
 
-    for num in range(0, 10):
+    for num in range(0, 40):
         print "******* User {} ********".format(num)
         ClassificationModel(user_num=num, df=result_df).optimize_parameters()
 
