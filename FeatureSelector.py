@@ -190,7 +190,7 @@ class FeatureSelector:
                 commands_list.extend(segment_cmd)
                 bigram_list.extend([(segment_cmd[i], segment_cmd[i+1]) for i in range(len(segment_cmd)-1)])
     # 1st feature
-        top_commands = pd.Series(commands_list).value_counts().nlargest(100).index.tolist()
+        top_commands = pd.Series(commands_list).value_counts().nlargest(500).index.tolist()
         top_bigrams = pd.Series(bigram_list).value_counts().nlargest(100).index.tolist()
 
         print 'top commands:'

@@ -89,7 +89,7 @@ if __name__ == "__main__":
     print 'Done'
     '''
 
-    #FeatureSelector().select_features(write=True)
+    FeatureSelector().select_features(write=True)
     #a = pd.Series(  DataProcessor().get_all_commands_series())
     #print a
     #commands = pd.Series(DataProcessor().get_all_commands_series())

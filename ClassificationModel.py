@@ -54,8 +54,8 @@ class ClassificationModel:
         if model:
             self.model = model
         else:
-            #self.model = LocalOutlierFactor(novelty=True)
-            self.model = LinearDiscriminantAnalysis()
+            self.model = LocalOutlierFactor(novelty=True)
+            #self.model = LinearDiscriminantAnalysis()
             #self.model = IsolationForest(random_state=42, max_samples=100, contamination=0.1)
             #self.model = OneClassSVM(nu=0.1, kernel='rbf', gamma=1e-3)
         if user_num < 10:
