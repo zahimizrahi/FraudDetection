@@ -98,7 +98,7 @@ if __name__ == "__main__":
     sample_df = pd.read_csv(sample_submission_file)
     result_df = pd.read_csv('outputs/FeatureSelector/all.csv')
 
-    cols = select_k_best(result_df, 40)
+    cols = select_k_best(result_df, 100)
     result_df = result_df[cols]
     result_df.loc[:, 'Label'] = FeatureSelector().get_labels_array_all()
     result_df.to_csv('outputs/FeatureSelector/selected_all.csv')

@@ -54,9 +54,10 @@ class ClassificationModel:
         if model:
             self.model = model
         else:
-            self.model = LocalOutlierFactor(novelty=True)
-            #self.model = IsolationForest(n_estimators=150,  contamination=0.1)
-        #self.model = OneClassSVM(nu=0.1, kernel='rbf', gamma=1e-4)
+            #self.model = LocalOutlierFactor(novelty=True)
+            self.model = LinearDiscriminantAnalysis()
+            #self.model = IsolationForest(random_state=42, max_samples=100, contamination=0.1)
+            #self.model = OneClassSVM(nu=0.1, kernel='rbf', gamma=1e-3)
         if user_num < 10:
             self.arr = self.df[(self.df['User'] == user_num)]
         else:
@@ -88,14 +89,12 @@ class ClassificationModel:
         result_df= pd.DataFrame([])
         normal_user_df = df[(df["User"] == self.user_num) & (df["Segment"].isin(range(50)))].copy()
         normal_user_df['Label'] = 0
-        """
         for other in range(40):
             if self.user_num != other:
                 other_user_df = df[(df['User'] == other) & (df["Segment"].isin(range(50)))].copy()
                 other_user_df['Label'] = 1
-                train_df = normal_user_df.append(other_user_df)
+                train_df = other_user_df
                 result_df = result_df.append(train_df)
-        """
         result_df = normal_user_df
         y_train = result_df.pop('Label')
         x_train = result_df.drop(columns=['Segment', 'User'])

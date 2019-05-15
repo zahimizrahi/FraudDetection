@@ -183,16 +183,22 @@ class FeatureSelector:
         print commands.keys()
         partial_labels = self.get_partial_labels()
 
-
+        bigram_list = []
         commands_list = []
         for user_cmd in commands:
             for segment_cmd in user_cmd:
                 commands_list.extend(segment_cmd)
-
+                bigram_list.extend([(segment_cmd[i], segment_cmd[i+1]) for i in range(len(segment_cmd)-1)])
     # 1st feature
-        top_commands = pd.Series(commands_list).value_counts().nlargest(50).index.tolist()
+        top_commands = pd.Series(commands_list).value_counts().nlargest(100).index.tolist()
+        top_bigrams = pd.Series(bigram_list).value_counts().nlargest(100).index.tolist()
+
         print 'top commands:'
         print top_commands
+
+        print 'top bigrams:'
+        print top_bigrams
+
 
     # preparations for 2nd feature
         distinct_first_50_commands = set()
@@ -242,7 +248,10 @@ class FeatureSelector:
                 for top_cmd in top_commands:
                     df.loc[(user_num,num_segment), top_cmd] = segment.count(top_cmd)
 
-
+                string_segment = ' '.join(segment)
+                for top_bigram in top_bigrams:
+                    string_bigram = top_bigram[0] + ' ' + top_bigram[1]
+                    df.loc[(user_num, num_segment), string_bigram] = string_segment.count(string_bigram)
                 # 2nd feature
                 df.loc[(user_num, num_segment), 'NewUsedCommands'] = \
                     len(set(segment) - distinct_first_50_commands)
@@ -280,7 +289,7 @@ class FeatureSelector:
                 for count_key, count_val in count_dict.items():
                     df.loc[ (user_num, num_segment), 'Seq_of_commands_repeated_{}'.format(count_key)] = count_val
 
-                df.loc[(user_num, num_segment), 'longest_duplicate_commands'] = max(sum(1 for i in g) for k, g in groupby(segment))
+                df.loc[(user_num, num_segment), 'Length_duplicated_command'] = max(sum(1 for i in g) for k, g in groupby(segment))
                 # added michal features
 
                 df.loc[(user_num, num_segment), 'Num_of_sequences'] = user_num_of_seq[user_num][num_segment]
