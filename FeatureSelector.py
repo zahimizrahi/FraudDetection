@@ -5,6 +5,11 @@ from collections import Counter
 from collections import defaultdict
 from DataProcessor import DataProcessor
 from Vectorizer import Vectorizer
+from matplotlib import pyplot as plt
+from itertools import groupby
+
+pd.options.display.max_rows = 150
+pd.options.display.max_columns = 150
 
 class FeatureSelector:
     label_file = 'resources/partial_labels.csv'
@@ -13,7 +18,7 @@ class FeatureSelector:
     feature_select_output_dir = 'outputs/FeatureSelector/'
     feature_select_output_file = 'outputs/FeatureSelector/all.csv'
 
-
+    plt.style.use('ggplot')
 # added michal features
 
     def command_avg_length(self, segments_list):
@@ -97,6 +102,12 @@ class FeatureSelector:
                 label_list.append(2)  # 2 means 'unknown!'
         return np.asarray(label_list)
 
+    def get_labels_array_all(self):
+        label_list = np.array([])
+        for i in range(40):
+            label_list = np.append(label_list, self.get_labels_array(i))
+        return label_list
+
     def get_partial_labels(self):
         return pd.read_csv('resources/partial_labels.csv')
 
@@ -147,35 +158,15 @@ class FeatureSelector:
     def select_features(self, write=True):
 
 
-    # first feature: TOP 40 common words
+    # first feature: TOP 20 common words
     # top-40 most common commands at all (We will use 1 gram, but it can work also with 2/3 gram)
-    # self.vectorize_all(n, type)
 
-    # 1st feature
-        one_ngram_df = pd.read_csv('outputs/Vectorizer/all-{}-{}.csv'.format(1,'ngram'))
-        df = self.select_most_common_all(one_ngram_df,
-                                         n_features=40)
-        # first feature
-        df.fillna(0, inplace=True)
-        df.loc[:,'User_index'] = df['User']
-        df.loc[:, 'Segment_index'] = df['Segment']
-        df.set_index(['User_index', 'Segment_index'], inplace=True)
-        print 'Finished 1 gram!'
-    # 2nd feature: TOP 40 2-gram - NOT INCLUDED RIGHT NOW
-    # top-40 most common 2-gram  sequences
-    # self.vectorize_all(n, type)
-     #   two_ngram_df = pd.read_csv('outputs/Vectorizer/all-{}-{}.csv'.format(2,'ngram'))
-     #   df2 = self.select_most_common_all(two_ngram_df, n_features=40)
-     #   df2.fillna(0, inplace=True)
-
-      #  df.join(df2, how='left', on=['User', 'Segment', 'Label'])
-
-    # third feature: NEW USED COMMANDS
+    # second feature: NEW USED COMMANDS
     # number of commands that didn't appear in the first 50 segments, but appeared in the given chunk
     # (indication of a commands that are used recently now)
     # the feature will be 0 for the first 50 segments
 
-    # 4th feature: count of fake commands
+    # 3th feature: count of fake commands
     # counter of commands that are used by malicious.
     # feature of unique commands that are used only as fake commands in the given segment.
     # feature of unique commands that are used only as benign commands in the given segment.
@@ -183,15 +174,27 @@ class FeatureSelector:
     # feature of number of commands from all the benign commands in the trainset for given segement - NOT INCLUDED.
 
 
-    # 5th feature: repeated sequence of commands
+    # 4th feature: repeated sequence of commands
     # number of different repeated sequence of commands that appeared at least 4 times (for each lengths)
     # why? because legitimate user won't use sequence of commands repeatedly.
 
-    # preparations for 3rd feature
+        df = pd.DataFrame(columns=['User', 'Segment']).set_index(['User', 'Segment'])
         commands = pd.Series(DataProcessor().get_all_commands_series())
         print commands.keys()
         partial_labels = self.get_partial_labels()
 
+
+        commands_list = []
+        for user_cmd in commands:
+            for segment_cmd in user_cmd:
+                commands_list.extend(segment_cmd)
+
+    # 1st feature
+        top_commands = pd.Series(commands_list).value_counts().nlargest(50).index.tolist()
+        print 'top commands:'
+        print top_commands
+
+    # preparations for 2nd feature
         distinct_first_50_commands = set()
         for user_num in commands.keys():
             for segment in commands[user_num][:50]:
@@ -199,7 +202,7 @@ class FeatureSelector:
                     distinct_first_50_commands.add(command)
 
         print 'Finished distinct_first_50_commands!'
-    # preparation for 4th feature
+    # preparation for 3th feature
         malicious_commands = defaultdict(list)
         for i in range(50, 150):
             col_index = str(100 * i ) + '-' + str(100 * (i+1))
@@ -235,11 +238,16 @@ class FeatureSelector:
         for user_num in commands.keys():
             for num_segment, segment in enumerate(commands[user_num]):
 
-                # 3rd feature
+                #1st feature
+                for top_cmd in top_commands:
+                    df.loc[(user_num,num_segment), top_cmd] = segment.count(top_cmd)
+
+
+                # 2nd feature
                 df.loc[(user_num, num_segment), 'NewUsedCommands'] = \
                     len(set(segment) - distinct_first_50_commands)
 
-                # 4th feature
+                # 3th feature
                 df.loc[(user_num, num_segment), 'UniqueMaliciousCommands'] = \
                     len( set(segment) & commands_used_only_by_malicious_train)
                 df.loc[(user_num, num_segment), 'UniqueMaliciousCommands'] = \
@@ -249,7 +257,7 @@ class FeatureSelector:
                 # df.loc[(user_num, num_segment), 'BenignCommandsCount'] = \
                 #    len(set(segment) & benign_commands_of_train_users_set)
 
-                # 5th feature
+                # 4th feature
                 min_len = 2
                 max_len = 10
                 minimum_seq_count = 4
@@ -272,12 +280,14 @@ class FeatureSelector:
                 for count_key, count_val in count_dict.items():
                     df.loc[ (user_num, num_segment), 'Seq_of_commands_repeated_{}'.format(count_key)] = count_val
 
-
+                df.loc[(user_num, num_segment), 'longest_duplicate_commands'] = max(sum(1 for i in g) for k, g in groupby(segment))
                 # added michal features
 
                 df.loc[(user_num, num_segment), 'Num_of_sequences'] = user_num_of_seq[user_num][num_segment]
                 df.loc[(user_num, num_segment), 'Diff_commands'] = user_diff_cmd[user_num][num_segment]
                 df.loc[(user_num, num_segment), 'Avg_commands_length'] = user_cmd_avg_len[user_num][num_segment]
+
+
 
                 print 'Done loop: User {}, Segment {} ...'.format(user_num, num_segment)
 
@@ -303,14 +313,12 @@ class FeatureSelector:
         del df['Seq_of_commands_repeated_8']
         del df['Seq_of_commands_repeated_7']
 
-        del df['Seq_of_commands_repeated_5']
+        del df['Seq_of_commands_repeated_6']
 
+        del df['Seq_of_commands_repeated_4']
         del df['Seq_of_commands_repeated_2']
 
-        # added michal features
-        dp_list = [DataProcessor().load_raw_data_single_user_segments(user_num, num_of_segments=150) for user_num in
-               range(40)]
-
+        df.loc[:, 'Label'] = self.get_labels_array_all()
         print 'Before write...'
         if write:
             df.to_csv(self.feature_select_output_file)

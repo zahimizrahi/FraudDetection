@@ -13,6 +13,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier
+from sklearn.ensemble import IsolationForest
 from sklearn import model_selection
 from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import LocalOutlierFactor
@@ -26,28 +27,36 @@ import pickle
 
 SEED = 10
 
+pd.options.display.max_rows = 150
+pd.options.display.max_columns = 150
 
 class ClassificationModel:
     feature_select_output_dir = 'outputs/FeatureSelector/'
-    feature_select_output_file = 'outputs/FeatureSelector/all.csv'
+    feature_select_output_file = 'outputs/FeatureSelector/selected_all.csv'
     sample_submission_file = 'resources/sample_submission.csv'
     submission_file = 'final_submission.csv'
     autoencoder_output_dir = 'outputs/autoencoders/'
 
-    def __init__(self, user_num, df):
+    def __init__(self, user_num, df, model=None):
         # TODO - use all users data
         self.user_num = user_num
         self.df = df.copy()
         self.sample_df = pd.read_csv(self.sample_submission_file)
         # Finalize model
-        self.model = RandomForestClassifier(n_estimators=10)
-        # model = LinearDiscriminantAnalysis()
-        # model = RandomForestClassifier(n_neighbors=1, novelty=True, contamination='legacy')
+        #self.model = IsolationForest(n_estimators=1, n_jobs=1, random_state=SEED, contamination=0.1)
+        #self.model = LinearDiscriminantAnalysis()
+        #self.model = IsolationForest(n_estimators=30,  contamination='legacy')
         # model = OneClassSVM(nu=0.1, kernel='rbf', gamma=1e-5)
-        # self.model = GaussianNB()
+        #self.model = GaussianNB()
+        #self.model = SVC()
         # self.model = AdaBoostClassifier()
-        # self.model = LocalOutlierFactor(n_neighbors=20, contamination=0.1)
-        self.model = OneClassSVM(nu=0.1, kernel='rbf', gamma=1e-5)
+        #self.model = GradientBoostingClassifier(random_state=SEED)
+        if model:
+            self.model = model
+        else:
+            self.model = LocalOutlierFactor(novelty=True)
+            #self.model = IsolationForest(n_estimators=150,  contamination=0.1)
+        #self.model = OneClassSVM(nu=0.1, kernel='rbf', gamma=1e-4)
         if user_num < 10:
             self.arr = self.df[(self.df['User'] == user_num)]
         else:
@@ -56,42 +65,58 @@ class ClassificationModel:
         self.x_train = self.arr
 
     def optimize_parameters(self):
-        tuned_parameters = [{'kernel': ['rbf'], 'gamma': ['auto', 5, 2, 1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5],
-                             'nu': [0.1]}]
+        tuned_parameters = [{'kernel': ['rbf'], 'gamma': ['auto', 1e-1, 1e-2, 1e-3, 1e-4, 1e-5],
+                             'nu': [0.1, 0.2, 0.3, 0.5]}]
         # tuned_parameters = { 'novelty': [True], 'n_neighbors': range(1,21, 2),
         #                     'contamination': ['legacy', 0.1, 0.2, 0.3, 0.5]}
         # Split the dataset in two equal parts
+        #tuned_parameters = { 'n_estimators': range(1,40,3), 'contamination': [0.1, 0.2]}
         self.train_models()
         X_train1, X_test1, y_train1, y_test1 = train_test_split(
             self.x_train, self.y_train, test_size=0.5, random_state=0)
 
         score = 'accuracy'
         print "# Tuning hyper-parameters for %s" % score
-        clf = GridSearchCV(self.model, tuned_parameters, cv=5, scoring=score)
+        clf = GridSearchCV(self.model, tuned_parameters, cv=10, scoring=score)
         clf.fit(X_train1, y_train1)
 
         print clf.best_params_
 
     def train_models(self, model=None):
         df = self.df.copy()
-        normal_user_df = self.df.copy()
+        other_user_df = pd.DataFrame([])
+        result_df= pd.DataFrame([])
         normal_user_df = df[(df["User"] == self.user_num) & (df["Segment"].isin(range(50)))].copy()
         normal_user_df['Label'] = 0
-        other_user_df = self.df.copy()
+        """
         for other in range(40):
             if self.user_num != other:
                 other_user_df = df[(df['User'] == other) & (df["Segment"].isin(range(50)))].copy()
                 other_user_df['Label'] = 1
-            normal_user_df = normal_user_df.append(other_user_df)
-        self.y_train = normal_user_df.pop('Label')
-        self.x_train = normal_user_df.drop(columns=['Segment', 'User', 'User_index', 'Segment_index'])
+                train_df = normal_user_df.append(other_user_df)
+                result_df = result_df.append(train_df)
+        """
+        result_df = normal_user_df
+        y_train = result_df.pop('Label')
+        x_train = result_df.drop(columns=['Segment', 'User'])
+        if model is None:
+            return self.model.fit(x_train, y_train)
+        else:
+            return model.fit(self.x_train, self.y_train)
+
+        '''
+        other_user_df = df[(df['User'] == ((self.user_num + 1) % 40)) & (df["Segment"].isin(range(50)))].copy()
+        other_user_df['Label'] = 1
+        result_df = normal_user_df.append(other_user_df)
+        self.y_train = result_df.pop('Label')
+        self.x_train = result_df.drop(columns=['Segment', 'User', 'User_index', 'Segment_index'])
         if model is None:
             return self.model.fit(self.x_train, self.y_train)
         else:
             return model.fit(self.x_train, self.y_train)
+        '''
 
     def predictLabels(self):
-
         self.train_models()
 
         # Save model
@@ -105,8 +130,7 @@ class ClassificationModel:
         df = pd.read_csv(self.feature_select_output_file)
         self.arr = df[df["User"] == self.user_num]
         # X = self.arr.drop(columns=['Label', 'Segment', 'User', 'Unnamed: 0'])
-        X = self.arr.drop(columns=['Label', 'Segment', 'User', 'User_index', 'Segment_index'])
-        X = numpy.array(X)
+        X = self.arr.drop(columns=['Label', 'Segment', 'User', 'Unnamed: 0'])
         preds = self.model.predict(X[50:])
         correct_preds = []
 
