@@ -11,6 +11,12 @@ import csv
 import matplotlib.pyplot as plt
 from pandas.plotting import scatter_matrix
 from sklearn.feature_selection import SelectKBest
+from pyod.models.lof import LOF
+from pyod.models.sos import SOS
+from pyod.models.ocsvm import OCSVM
+from pyod.models.cblof import CBLOF
+from pyod.models.loci import LOCI
+
 partial_labels_path= 'resources/partial_labels.csv'
 pd.options.display.max_rows = 150
 pd.options.display.max_columns = 150
@@ -89,22 +95,22 @@ if __name__ == "__main__":
     print 'Done'
     '''
 
-    FeatureSelector().select_features(write=True)
+    #FeatureSelector().select_features(write=True)
     #a = pd.Series(  DataProcessor().get_all_commands_series())
     #print a
     #commands = pd.Series(DataProcessor().get_all_commands_series())
     #print commands.keys()
 
     sample_df = pd.read_csv(sample_submission_file)
-    result_df = pd.read_csv('outputs/FeatureSelector/all.csv')
-
-    cols = select_k_best(result_df, 100)
+    result_df = pd.read_csv('outputs/FeatureSelector/all_500_500.csv')
+    cols = select_k_best(result_df,200)
     result_df = result_df[cols]
     result_df.loc[:, 'Label'] = FeatureSelector().get_labels_array_all()
     result_df.to_csv('outputs/FeatureSelector/selected_all.csv')
     v = pd.read_csv(validation_file)
     validation_set = v['Label']
     classification_res = []
+    clf = LOF(n_neighbors=20, contamination=0.1)
 
     #for num in range(0, 40):
      #   print "******* User {} ********".format(num)
@@ -112,13 +118,13 @@ if __name__ == "__main__":
 
     for num in range(0, 10):
         print "******* User {} ********".format(num)
-        classification_res.extend(ClassificationModel(user_num=num, df=result_df).predictLabels())
+        classification_res.extend(ClassificationModel(user_num=num, df=result_df, model=clf).predictLabels())
     validation(classification_res, validation_set)
 
 
     for num in range(10, 40):
         print "******* User {} ********".format(num)
-        classification_res = ClassificationModel(user_num=num, df=result_df).predictLabels()
+        classification_res = ClassificationModel(user_num=num, df=result_df, model=clf).predictLabels()
         sample_df.loc[sample_df['id'].str.startswith('User{}_'.format(num)), 'label'] = classification_res
         sample_df.to_csv(submission_file, index=False)
     print 'Done'
